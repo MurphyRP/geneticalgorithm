@@ -1,0 +1,44 @@
+# Environment and secrets
+.env
+*.env
+.mcp.json
+
+# Claude Code settings (may contain local paths)
+.claude/
+
+# Temporary files
+tmp/
+archive.zip 
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+Archive.zip

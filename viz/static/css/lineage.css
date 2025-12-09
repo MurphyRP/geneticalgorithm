@@ -1,0 +1,337 @@
+/**
+ * Lineage Explorer Styles
+ *
+ * Full-viewport layout optimized for Sankey visualization with:
+ * - Fixed header with controls (~120px)
+ * - Flexible Sankey container (fills remaining viewport)
+ * - Navigation controls (Back, Reset, breadcrumbs)
+ * - Responsive design
+ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                 Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #F5F6FA;
+    color: #2C3E50;
+}
+
+/* Main Container - Full Viewport */
+.lineage-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Header */
+.lineage-header {
+    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+    color: white;
+    padding: 20px 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.lineage-header h1 {
+    font-size: 2em;
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 1em;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.page-nav {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-link {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.2s;
+    font-size: 0.95em;
+}
+
+.nav-link:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Control Panel */
+.control-panel {
+    background: white;
+    padding: 15px 30px;
+    border-bottom: 1px solid #E0E6ED;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-group label {
+    font-weight: 600;
+    font-size: 0.95em;
+    color: #2C3E50;
+}
+
+.control-group select {
+    padding: 8px 12px;
+    font-size: 0.95em;
+    border: 2px solid #DFE4EA;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-width: 150px;
+}
+
+.control-group select:hover {
+    border-color: #667EEA;
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: #667EEA;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Navigation Controls */
+.nav-controls {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.control-button {
+    padding: 8px 16px;
+    font-size: 0.95em;
+    border: 2px solid #667EEA;
+    border-radius: 6px;
+    background: white;
+    color: #667EEA;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.control-button:hover:not(:disabled) {
+    background: #667EEA;
+    color: white;
+}
+
+.control-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: #DFE4EA;
+    color: #95A5A6;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    flex: 1 1 100%;
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #7F8C8D;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.breadcrumb-item {
+    background: #F4F5F7;
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: #2C3E50;
+}
+
+.breadcrumb-separator {
+    color: #95A5A6;
+}
+
+/* Info Display */
+.info-display {
+    font-size: 0.9em;
+    color: #7F8C8D;
+}
+
+.info-display span {
+    font-weight: 600;
+    color: #2C3E50;
+}
+
+/* Legend */
+.lineage-legend {
+    background: white;
+    padding: 12px 30px;
+    border-bottom: 1px solid #E0E6ED;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 0.9em;
+}
+
+.legend-title {
+    font-weight: 600;
+    color: #2C3E50;
+}
+
+.legend-items {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.legend-item span {
+    color: #2C3E50;
+}
+
+/* Sankey Container - Fills Remaining Space */
+.sankey-container {
+    flex: 1;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    background: white;
+}
+
+.sankey-container svg {
+    display: block;
+}
+
+/* Loading Message */
+.loading-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    padding: 40px;
+    color: #95A5A6;
+    font-size: 1.1em;
+    background: #F9FAFB;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Sankey Tooltip (created by JavaScript) */
+.sankey-tooltip {
+    line-height: 1.6;
+}
+
+.sankey-tooltip hr {
+    border: none;
+    border-top: 1px solid #555;
+    margin: 8px 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .lineage-header h1 {
+        font-size: 1.6em;
+    }
+
+    .control-panel {
+        gap: 15px;
+        padding: 12px 20px;
+    }
+
+    .control-group select {
+        min-width: 120px;
+    }
+
+    .nav-controls {
+        margin-left: 0;
+        flex: 1 1 100%;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .lineage-header {
+        padding: 15px 20px;
+    }
+
+    .lineage-header h1 {
+        font-size: 1.4em;
+    }
+
+    .subtitle {
+        font-size: 0.9em;
+    }
+
+    .control-panel {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .control-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .control-group label {
+        font-size: 0.9em;
+    }
+
+    .control-group select {
+        width: 100%;
+    }
+
+    .nav-controls {
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    .control-button {
+        flex: 1;
+    }
+
+    .breadcrumb {
+        font-size: 0.85em;
+    }
+}

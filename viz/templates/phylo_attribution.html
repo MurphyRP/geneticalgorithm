@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phylogenetic Attribution Analysis</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #F5F6FA;
+            color: #2C3E50;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: white;
+            opacity: 0.9;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        nav {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        nav a {
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 0.95em;
+            white-space: nowrap;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        nav a.active {
+            background: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            color: #2C3E50;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .controls select {
+            flex: 0 0 auto;
+            min-width: 300px;
+            padding: 10px 15px;
+            font-size: 1em;
+            border: 2px solid #DFE4EA;
+            border-radius: 6px;
+            background: white;
+            color: #2C3E50;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .controls select:hover {
+            border-color: #667EEA;
+        }
+
+        .controls select:focus {
+            outline: none;
+            border-color: #667EEA;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #loading {
+            text-align: center;
+            padding: 40px;
+            color: #7F8C8D;
+            font-size: 1.2em;
+        }
+
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #E8ECEF;
+        }
+
+        .section-title {
+            color: #667EEA;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .section-description {
+            color: #7F8C8D;
+            font-size: 0.95em;
+            margin-top: 5px;
+        }
+
+        .tag-type-section {
+            margin-bottom: 40px;
+        }
+
+        .tag-type-header {
+            background: #F8F9FA;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667EEA;
+        }
+
+        .tag-type-title {
+            color: #667EEA;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: #F8F9FA;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #E8ECEF;
+        }
+
+        .chart-title {
+            color: #7F8C8D;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: #EBF4FF;
+            border-left: 4px solid #667EEA;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+            color: #2C3E50;
+            font-size: 0.95em;
+            line-height: 1.8;
+        }
+
+        .info-box strong {
+            color: #667EEA;
+            font-weight: 600;
+        }
+
+        #delta-chart {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #E8ECEF;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error {
+            background: #FFEBEE;
+            border-left: 4px solid #E74C3C;
+            padding: 20px;
+            border-radius: 6px;
+            color: #C0392B;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        /* Lineage Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #E8ECEF;
+        }
+
+        .modal-title {
+            color: #667EEA;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #7F8C8D;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #667EEA;
+        }
+
+        .lineage-item {
+            background: #F8F9FA;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667EEA;
+        }
+
+        .lineage-item h4 {
+            color: #667EEA;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .lineage-item p {
+            color: #2C3E50;
+            font-size: 0.95em;
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Phylogenetic Attribution Analysis</h1>
+            <div class="subtitle">
+                Understanding which tag changes drive fitness improvements through evolutionary lineage tracing
+            </div>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/lineage">Lineage Explorer</a>
+                <a href="/phylo_attribution" class="active">Phylo Attribution</a>
+                <a href="/tag_story">Tag Story</a>
+            </nav>
+        </header>
+
+        <div class="controls">
+            <div>
+                <label for="era-select">Era (single-tag only):</label>
+                <select id="era-select">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="loading">Loading data...</div>
+        <div id="error-message" class="error hidden"></div>
+
+        <!-- Delta Analysis Section (shown first - most important) -->
+        <section id="delta-section" class="section hidden">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Tag Type Impact Analysis</div>
+                    <div class="section-description">Which tag types drive fitness improvements?</div>
+                </div>
+            </div>
+            <div class="info-box">
+                <strong>How to read:</strong> Each tag type shows two bars (bar length = percentage):
+                <ul style="margin: 10px 0 0 20px; color: #2C3E50;">
+                    <li><strong style="color: #667EEA;">Purple (Success Rate):</strong> What % of tag changes improved fitness (hover for mean improvement)</li>
+                    <li><strong style="color: #E74C3C;">Red (Failure Rate):</strong> What % of tag changes hurt fitness (hover for mean harm)</li>
+                </ul>
+                <strong>Key Insight:</strong> Tag types with longer purple bars have higher success rates when changed.
+                Hover to see the average improvement/harm magnitude. <strong>role</strong> has the highest success rate!
+            </div>
+            <div id="delta-chart"></div>
+        </section>
+
+        <!-- Static Metrics Section - REMOVED per user request -->
+        <!-- The success rate breakdown above is more informative -->
+    </div>
+
+    <!-- Lineage Modal -->
+    <div id="lineage-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Tag Lineage</div>
+                <button class="modal-close" onclick="closeLineageModal()">&times;</button>
+            </div>
+            <div id="lineage-content"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/phylo_attribution.js') }}"></script>
+</body>
+</html>

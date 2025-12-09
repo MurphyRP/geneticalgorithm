@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tag Evolutionary Story</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: #00d9ff;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .single-tag-notice {
+            background: rgba(255, 165, 0, 0.1);
+            border-left: 3px solid #ff9500;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            color: #ffb347;
+            font-size: 0.85em;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        nav a {
+            color: #888;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            color: #00d9ff;
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        nav a.active {
+            color: #00d9ff;
+            background: rgba(0, 217, 255, 0.2);
+        }
+
+        .controls {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            color: #888;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+
+        .controls select {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            cursor: pointer;
+            min-width: 300px;
+        }
+
+        .controls select:hover {
+            border-color: #00d9ff;
+        }
+
+        #loading, #error-message {
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        #loading {
+            background: rgba(0, 217, 255, 0.1);
+            color: #00d9ff;
+        }
+
+        #error-message {
+            background: rgba(255, 0, 0, 0.1);
+            color: #ff6b6b;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 20px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            transition: background 0.2s;
+        }
+
+        .section-header:hover {
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            color: #00d9ff;
+            font-weight: 600;
+        }
+
+        .section-description {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .section-toggle {
+            color: #888;
+            font-size: 1.5em;
+            transition: transform 0.3s;
+        }
+
+        .section.collapsed .section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            padding: 20px;
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .section.collapsed .section-content {
+            max-height: 0;
+            padding: 0 20px;
+        }
+
+        .viz-container {
+            margin-bottom: 20px;
+        }
+
+        .tag-type-title {
+            color: #00d9ff;
+            font-size: 1.1em;
+            margin: 20px 0 10px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .tag-type-title:first-child {
+            margin-top: 0;
+        }
+
+        .stats-summary {
+            background: #252525;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            color: #00d9ff;
+            font-weight: 600;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Tag Evolutionary Story</h1>
+            <div class="subtitle">
+                Three analyses revealing the evolutionary success story of winning tags
+            </div>
+            <div class="single-tag-notice">
+                <strong>Single-Tag Eras Only:</strong> This visualization requires single-tag eras where individual tag variants can be tracked across generations via GUIDs and lineage.
+            </div>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/lineage">Lineage Explorer</a>
+                <a href="/phylo_attribution">Phylo Attribution</a>
+                <a href="/tag_story" class="active">Tag Story</a>
+            </nav>
+        </header>
+
+        <div class="controls">
+            <div>
+                <label for="era-select">Era (single-tag only):</label>
+                <select id="era-select">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="loading">Loading data...</div>
+        <div id="error-message" class="hidden"></div>
+
+        <!-- Analysis 1: Tag Survival (Founder Effects) -->
+        <section id="survival-section" class="section hidden">
+            <div class="section-header" onclick="toggleSection('survival')">
+                <div>
+                    <div class="section-title">1. Tag Survival: Founder Effects</div>
+                    <div class="section-description">Which Generation 0 tags made it to the final elite cohort?</div>
+                </div>
+                <span class="section-toggle">▼</span>
+            </div>
+            <div class="section-content">
+                <div class="stats-summary" id="survival-stats"></div>
+                <div id="survival-viz"></div>
+            </div>
+        </section>
+
+        <!-- Analysis 2: Breakthrough Moments -->
+        <section id="breakthroughs-section" class="section hidden">
+            <div class="section-header" onclick="toggleSection('breakthroughs')">
+                <div>
+                    <div class="section-title">2. Breakthrough Moments</div>
+                    <div class="section-description">When fitness jumped, which tags changed?</div>
+                </div>
+                <span class="section-toggle">▼</span>
+            </div>
+            <div class="section-content">
+                <div class="stats-summary" id="breakthroughs-stats"></div>
+                <div id="breakthroughs-viz"></div>
+            </div>
+        </section>
+
+        <!-- Analysis 3: Elite Tag Patterns -->
+        <section id="elite-section" class="section hidden">
+            <div class="section-header" onclick="toggleSection('elite')">
+                <div>
+                    <div class="section-title">3. Elite Tag Patterns</div>
+                    <div class="section-description">What tags do high performers share?</div>
+                </div>
+                <span class="section-toggle">▼</span>
+            </div>
+            <div class="section-content">
+                <div class="stats-summary" id="elite-stats"></div>
+                <div id="elite-viz"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Breakthrough Comparison Modal -->
+    <div id="breakthrough-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: #1a1a1a; padding: 30px; border-radius: 8px; max-width: 1000px; max-height: 80vh; overflow-y: auto; border: 1px solid #333; position: relative;">
+            <button onclick="closeBreakthroughModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #888; font-size: 1.5em; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
+            <div id="breakthrough-modal-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // Section collapse/expand
+        function toggleSection(sectionId) {
+            const section = document.getElementById(`${sectionId}-section`);
+            section.classList.toggle('collapsed');
+        }
+
+        // State
+        let currentEra = null;
+
+        // Load eras (filter to single-tag only)
+        async function loadEras() {
+            try {
+                const response = await fetch('/api/phylo_attribution/eras');
+                const data = await response.json();
+
+                // Check if response is an error object
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                const select = document.getElementById('era-select');
+                select.innerHTML = '';
+
+                // Ensure data is an array
+                const eras = Array.isArray(data) ? data : [];
+
+                if (eras.length === 0) {
+                    select.innerHTML = '<option value="">No single-tag eras found</option>';
+                    document.getElementById('loading').classList.add('hidden');
+                    return;
+                }
+
+                eras.forEach(era => {
+                    const option = document.createElement('option');
+                    option.value = era.era;
+                    option.textContent = `${era.era} (${era.max_generation + 1} generations)`;
+                    select.appendChild(option);
+                });
+
+                // Auto-select first era
+                if (eras.length > 0) {
+                    select.value = eras[0].era;
+                    currentEra = eras[0].era;
+                    await loadAllAnalyses(currentEra);
+                }
+            } catch (error) {
+                showError(`Failed to load eras: ${error.message}`);
+            }
+        }
+
+        // Era change handler
+        document.getElementById('era-select').addEventListener('change', async (e) => {
+            currentEra = e.target.value;
+            if (currentEra) {
+                await loadAllAnalyses(currentEra);
+            }
+        });
+
+        // Load all three analyses
+        async function loadAllAnalyses(era) {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('error-message').classList.add('hidden');
+
+            // Hide all sections initially
+            document.getElementById('survival-section').classList.add('hidden');
+            document.getElementById('breakthroughs-section').classList.add('hidden');
+            document.getElementById('elite-section').classList.add('hidden');
+
+            try {
+                // Load all three analyses in parallel
+                const [survivalData, breakthroughsData, eliteData] = await Promise.all([
+                    fetch(`/api/tag_story/survival/${era}`).then(r => r.json()),
+                    fetch(`/api/tag_story/breakthroughs/${era}`).then(r => r.json()),
+                    fetch(`/api/tag_story/elite_patterns/${era}`).then(r => r.json())
+                ]);
+
+                // Check for errors
+                if (survivalData.error) throw new Error(survivalData.error);
+                if (breakthroughsData.error) throw new Error(breakthroughsData.error);
+                if (eliteData.error) throw new Error(eliteData.error);
+
+                // Render all three analyses
+                console.log('Rendering survival analysis...', survivalData);
+                renderSurvivalAnalysis(survivalData);
+                console.log('Rendering breakthroughs...', breakthroughsData);
+                renderBreakthroughs(breakthroughsData);
+                console.log('Rendering elite patterns...', eliteData);
+                renderElitePatterns(eliteData);
+                console.log('All renders complete');
+
+                // Show all sections
+                document.getElementById('survival-section').classList.remove('hidden');
+                document.getElementById('breakthroughs-section').classList.remove('hidden');
+                document.getElementById('elite-section').classList.remove('hidden');
+
+                document.getElementById('loading').classList.add('hidden');
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        // Render survival analysis
+        function renderSurvivalAnalysis(data) {
+            console.log('renderSurvivalAnalysis called');
+            const statsDiv = document.getElementById('survival-stats');
+            const vizDiv = document.getElementById('survival-viz');
+
+            // Calculate stats
+            let totalSurvivors = 0;
+            Object.values(data.tag_types).forEach(tagType => {
+                totalSurvivors += tagType.variants.length;
+            });
+
+            statsDiv.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${totalSurvivors}</div>
+                    <div class="stat-label">Gen 0 Tags in Final Elites</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${Object.keys(data.tag_types).length}</div>
+                    <div class="stat-label">Tag Types Analyzed</div>
+                </div>
+            `;
+
+            // Create container for all charts
+            vizDiv.innerHTML = '';
+
+            // Tag type display names
+            const tagTypeNames = {
+                'role': 'Role',
+                'compression_target': 'Compression Target',
+                'fidelity': 'Fidelity',
+                'constraints': 'Constraints',
+                'output': 'Output'
+            };
+
+            // Render a bar chart for each tag type
+            Object.keys(data.tag_types).forEach(tagType => {
+                const tagData = data.tag_types[tagType];
+                const variants = tagData.variants;
+
+                if (variants.length === 0) {
+                    return; // Skip if no variants
+                }
+
+                // Create container for this tag type
+                const chartDiv = document.createElement('div');
+                chartDiv.className = 'tag-type-chart';
+                chartDiv.style.marginBottom = '40px';
+
+                const title = document.createElement('div');
+                title.className = 'tag-type-title';
+                title.textContent = tagTypeNames[tagType] || tagType;
+                chartDiv.appendChild(title);
+
+                const plotDiv = document.createElement('div');
+                plotDiv.id = `survival-${tagType}`;
+                plotDiv.style.width = '100%';
+                plotDiv.style.height = `${Math.max(300, variants.length * 40)}px`;
+                chartDiv.appendChild(plotDiv);
+
+                vizDiv.appendChild(chartDiv);
+
+                // Prepare data for Plotly
+                const yLabels = variants.map(v => v.text_snippet);
+                const xValues = variants.map(v => v.elite_count);
+                const fitnessValues = variants.map(v => v.mean_fitness_in_elites);
+                const fullTexts = variants.map(v => v.text_full);
+                const origins = variants.map(v => v.origin);
+
+                // Create hover text
+                const hoverTexts = variants.map((v, i) =>
+                    `<b>${fullTexts[i]}</b><br>` +
+                    `Elite Count: ${v.elite_count}<br>` +
+                    `Mean Fitness: ${v.mean_fitness_in_elites.toFixed(4)}<br>` +
+                    `Origin: ${v.origin}`
+                );
+
+                const trace = {
+                    type: 'bar',
+                    orientation: 'h',
+                    x: xValues,
+                    y: yLabels,
+                    text: hoverTexts,
+                    hoverinfo: 'text',
+                    marker: {
+                        color: fitnessValues,
+                        colorscale: 'Viridis',
+                        showscale: true,
+                        colorbar: {
+                            title: 'Mean<br>Fitness',
+                            titleside: 'right',
+                            tickmode: 'linear',
+                            tick0: Math.min(...fitnessValues),
+                            dtick: (Math.max(...fitnessValues) - Math.min(...fitnessValues)) / 5,
+                            thickness: 15,
+                            len: 0.7
+                        }
+                    }
+                };
+
+                const layout = {
+                    title: '',
+                    xaxis: {
+                        title: 'Count in Final Elite Cohort',
+                        color: '#888',
+                        gridcolor: '#333'
+                    },
+                    yaxis: {
+                        title: '',
+                        color: '#888',
+                        automargin: true
+                    },
+                    plot_bgcolor: '#1a1a1a',
+                    paper_bgcolor: '#1a1a1a',
+                    font: {
+                        color: '#e0e0e0',
+                        family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    },
+                    margin: { l: 300, r: 100, t: 20, b: 60 },
+                    hovermode: 'closest'
+                };
+
+                const config = {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+                };
+
+                Plotly.newPlot(plotDiv.id, [trace], layout, config);
+            });
+        }
+
+        // Render breakthroughs
+        function renderBreakthroughs(data) {
+            console.log('renderBreakthroughs called');
+            const statsDiv = document.getElementById('breakthroughs-stats');
+            const vizDiv = document.getElementById('breakthroughs-viz');
+
+            const breakthroughCount = data.breakthroughs.length;
+
+            statsDiv.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${breakthroughCount}</div>
+                    <div class="stat-label">Fitness Breakthroughs</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${data.threshold.toFixed(4)}</div>
+                    <div class="stat-label">Delta Threshold</div>
+                </div>
+            `;
+
+            // Create plot div
+            vizDiv.innerHTML = '<div id="breakthrough-plot" style="width: 100%; height: 500px;"></div>';
+
+            // Extract fitness trajectory data
+            const generations = data.breakthroughs.map(b => b.to_generation);
+            const fitnesses = data.breakthroughs.map(b => b.curr_fitness);
+
+            // Create base trace (all generations)
+            const allGenerations = [];
+            const allFitnesses = [];
+            for (let i = 0; i < generations[generations.length - 1] + 1; i++) {
+                allGenerations.push(i);
+                const breakthrough = data.breakthroughs.find(b => b.to_generation === i);
+                allFitnesses.push(breakthrough ? breakthrough.curr_fitness : null);
+            }
+
+            const baseTrace = {
+                type: 'scatter',
+                mode: 'lines+markers',
+                x: allGenerations,
+                y: allFitnesses,
+                name: 'Fitness',
+                line: {
+                    color: '#00d9ff',
+                    width: 2
+                },
+                marker: {
+                    size: 6,
+                    color: '#00d9ff'
+                },
+                hovertemplate: 'Generation: %{x}<br>Fitness: %{y:.4f}<extra></extra>'
+            };
+
+            // Create breakthrough markers with individual hover texts
+            const breakthroughHoverTexts = data.breakthroughs.map(b =>
+                `Generation: ${b.to_generation}<br>` +
+                `Fitness: ${b.curr_fitness.toFixed(4)}<br>` +
+                `Delta: +${b.fitness_delta.toFixed(4)}<br>` +
+                `<i>Click to view tag changes</i>`
+            );
+
+            const breakthroughTrace = {
+                type: 'scatter',
+                mode: 'markers',
+                x: generations,
+                y: fitnesses,
+                name: 'Breakthroughs',
+                marker: {
+                    size: 14,
+                    color: '#ff6b6b',
+                    symbol: 'star',
+                    line: {
+                        color: '#fff',
+                        width: 1
+                    }
+                },
+                customdata: data.breakthroughs.map((b, i) => i),
+                text: breakthroughHoverTexts,
+                hoverinfo: 'text'
+            };
+
+            const layout = {
+                title: {
+                    text: 'Fitness Trajectory with Breakthrough Moments',
+                    font: { color: '#e0e0e0', size: 16 }
+                },
+                xaxis: {
+                    title: 'Generation',
+                    color: '#888',
+                    gridcolor: '#333'
+                },
+                yaxis: {
+                    title: 'Best Fitness',
+                    color: '#888',
+                    gridcolor: '#333'
+                },
+                plot_bgcolor: '#1a1a1a',
+                paper_bgcolor: '#1a1a1a',
+                font: {
+                    color: '#e0e0e0',
+                    family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                },
+                hovermode: 'closest',
+                showlegend: true,
+                legend: {
+                    x: 0.02,
+                    y: 0.98,
+                    bgcolor: 'rgba(26, 26, 26, 0.8)',
+                    bordercolor: '#333',
+                    borderwidth: 1
+                }
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                displaylogo: false
+            };
+
+            Plotly.newPlot('breakthrough-plot', [baseTrace, breakthroughTrace], layout, config);
+
+            // Add click handler for breakthrough markers
+            document.getElementById('breakthrough-plot').on('plotly_click', function(eventData) {
+                if (eventData.points[0].data.name === 'Breakthroughs') {
+                    const breakthroughIndex = eventData.points[0].customdata;
+                    const breakthrough = data.breakthroughs[breakthroughIndex];
+                    showBreakthroughModal(breakthrough);
+                }
+            });
+        }
+
+        // Show breakthrough comparison modal
+        function showBreakthroughModal(breakthrough) {
+            const modal = document.getElementById('breakthrough-modal');
+            const content = document.getElementById('breakthrough-modal-content');
+
+            const tagTypes = ['role', 'compression_target', 'fidelity', 'constraints', 'output'];
+            const tagTypeNames = {
+                'role': 'Role',
+                'compression_target': 'Compression Target',
+                'fidelity': 'Fidelity',
+                'constraints': 'Constraints',
+                'output': 'Output'
+            };
+
+            let html = `
+                <h3 style="color: #00d9ff; margin-bottom: 20px;">
+                    Generation ${breakthrough.from_generation} → ${breakthrough.to_generation} Breakthrough
+                </h3>
+                <div style="background: #252525; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-around;">
+                        <div>
+                            <div style="color: #888; font-size: 0.9em;">Previous Fitness</div>
+                            <div style="color: #e0e0e0; font-size: 1.5em; font-weight: 600;">${breakthrough.prev_fitness.toFixed(4)}</div>
+                        </div>
+                        <div style="color: #00d9ff; font-size: 2em; line-height: 1.5;">→</div>
+                        <div>
+                            <div style="color: #888; font-size: 0.9em;">New Fitness</div>
+                            <div style="color: #00d9ff; font-size: 1.5em; font-weight: 600;">${breakthrough.curr_fitness.toFixed(4)}</div>
+                        </div>
+                        <div>
+                            <div style="color: #888; font-size: 0.9em;">Improvement</div>
+                            <div style="color: #6bff6b; font-size: 1.5em; font-weight: 600;">+${breakthrough.fitness_delta.toFixed(4)}</div>
+                        </div>
+                    </div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #333;">
+                            <th style="text-align: left; padding: 10px; color: #888;">Tag Type</th>
+                            <th style="text-align: center; padding: 10px; color: #888;">Changed</th>
+                            <th style="text-align: left; padding: 10px; color: #888;">Comparison</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            tagTypes.forEach(tagType => {
+                const change = breakthrough.changes[tagType];
+                const changed = change.changed;
+                const prevText = change.prev_text;
+                const currText = change.curr_text;
+
+                html += `
+                    <tr style="border-bottom: 1px solid #333;">
+                        <td style="padding: 15px; color: #e0e0e0; font-weight: 600;">
+                            ${tagTypeNames[tagType]}
+                        </td>
+                        <td style="padding: 15px; text-align: center;">
+                            ${changed ?
+                                '<span style="color: #ff6b6b; font-size: 1.2em;">✓</span>' :
+                                '<span style="color: #555;">—</span>'}
+                        </td>
+                        <td style="padding: 15px;">
+                            ${changed ? `
+                                <div style="margin-bottom: 10px;">
+                                    <div style="color: #888; font-size: 0.85em; margin-bottom: 5px;">Previous:</div>
+                                    <div style="color: #aaa; font-style: italic;">"${prevText}"</div>
+                                </div>
+                                <div>
+                                    <div style="color: #888; font-size: 0.85em; margin-bottom: 5px;">New:</div>
+                                    <div style="color: #00d9ff; font-weight: 500;">"${currText}"</div>
+                                </div>
+                            ` : `
+                                <div style="color: #888; font-style: italic;">
+                                    "${prevText}"
+                                </div>
+                                <div style="color: #555; font-size: 0.85em; margin-top: 5px;">(unchanged)</div>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            content.innerHTML = html;
+            modal.style.display = 'flex';
+        }
+
+        // Close breakthrough modal
+        function closeBreakthroughModal() {
+            document.getElementById('breakthrough-modal').style.display = 'none';
+        }
+
+        // Render elite patterns
+        function renderElitePatterns(data) {
+            console.log('renderElitePatterns called');
+            const statsDiv = document.getElementById('elite-stats');
+            const vizDiv = document.getElementById('elite-viz');
+
+            // Calculate stats
+            let totalVariants = 0;
+            Object.values(data.tag_types).forEach(tagType => {
+                totalVariants += tagType.variants.length;
+            });
+
+            statsDiv.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${totalVariants}</div>
+                    <div class="stat-label">Elite-Enriched Variants</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${Object.keys(data.tag_types).length}</div>
+                    <div class="stat-label">Tag Types Analyzed</div>
+                </div>
+            `;
+
+            // Create container for all heatmaps
+            vizDiv.innerHTML = '';
+
+            const tagTypeNames = {
+                'role': 'Role',
+                'compression_target': 'Compression Target',
+                'fidelity': 'Fidelity',
+                'constraints': 'Constraints',
+                'output': 'Output'
+            };
+
+            // Render a heatmap for each tag type
+            Object.keys(data.tag_types).forEach(tagType => {
+                const tagData = data.tag_types[tagType];
+                const variants = tagData.variants;
+
+                if (variants.length === 0) {
+                    return; // Skip if no variants
+                }
+
+                // Create container for this tag type
+                const chartDiv = document.createElement('div');
+                chartDiv.className = 'tag-type-chart';
+                chartDiv.style.marginBottom = '40px';
+
+                const title = document.createElement('div');
+                title.className = 'tag-type-title';
+                title.textContent = tagTypeNames[tagType] || tagType;
+                chartDiv.appendChild(title);
+
+                const plotDiv = document.createElement('div');
+                plotDiv.id = `elite-${tagType}`;
+                plotDiv.style.width = '100%';
+                plotDiv.style.height = `${Math.max(400, variants.length * 35)}px`;
+                chartDiv.appendChild(plotDiv);
+
+                vizDiv.appendChild(chartDiv);
+
+                // Prepare data for heatmap
+                const yLabels = variants.map(v => v.text_snippet);
+                const zValues = variants.map(v => [v.enrichment_ratio]); // Wrap in array for heatmap
+                const fullTexts = variants.map(v => v.text_full);
+                const eliteCounts = variants.map(v => v.elite_count);
+                const regularCounts = variants.map(v => v.regular_count);
+                const meanFitnesses = variants.map(v => v.mean_fitness);
+
+                // Create hover text
+                const hoverTexts = variants.map((v, i) =>
+                    `<b>${fullTexts[i]}</b><br>` +
+                    `Enrichment Ratio: ${v.enrichment_ratio.toFixed(2)}x<br>` +
+                    `Elite Count: ${v.elite_count} / Total: ${v.total_count}<br>` +
+                    `Elite Frequency: ${(v.elite_frequency * 100).toFixed(1)}%<br>` +
+                    `Mean Fitness: ${v.mean_fitness.toFixed(4)}`
+                );
+
+                const trace = {
+                    type: 'heatmap',
+                    z: zValues,
+                    y: yLabels,
+                    x: ['Enrichment Ratio'],
+                    text: hoverTexts.map(h => [h]), // Wrap in array for heatmap
+                    hoverinfo: 'text',
+                    colorscale: [
+                        [0, '#d73027'],      // Dark red (under-represented)
+                        [0.5, '#f7f7f7'],    // White (neutral = 1.0)
+                        [1, '#1a9850']       // Dark green (enriched)
+                    ],
+                    zmid: 1.0,
+                    showscale: true,
+                    colorbar: {
+                        title: 'Enrichment<br>Ratio',
+                        titleside: 'right',
+                        tickvals: [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+                        ticktext: ['0x', '0.5x', '1.0x', '1.5x', '2.0x', '2.5x', '3.0x'],
+                        thickness: 20,
+                        len: 0.7
+                    }
+                };
+
+                const layout = {
+                    title: '',
+                    xaxis: {
+                        title: '',
+                        color: '#888',
+                        side: 'top'
+                    },
+                    yaxis: {
+                        title: '',
+                        color: '#888',
+                        automargin: true,
+                        tickfont: { size: 11 }
+                    },
+                    plot_bgcolor: '#1a1a1a',
+                    paper_bgcolor: '#1a1a1a',
+                    font: {
+                        color: '#e0e0e0',
+                        family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    },
+                    margin: { l: 320, r: 120, t: 50, b: 40 }
+                };
+
+                const config = {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+                };
+
+                Plotly.newPlot(plotDiv.id, [trace], layout, config);
+            });
+        }
+
+        // Error handler
+        function showError(message) {
+            document.getElementById('loading').classList.add('hidden');
+
+            // Make database connection errors more user-friendly
+            let displayMessage = message;
+            if (message.includes('NoneType') || message.includes('query') || message.includes('Couchbase')) {
+                displayMessage = 'No database connection! Please check Couchbase cluster connectivity.';
+            }
+
+            document.getElementById('error-message').textContent = `Error: ${displayMessage}`;
+            document.getElementById('error-message').classList.remove('hidden');
+        }
+
+        // Initialize
+        loadEras();
+    </script>
+</body>
+</html>

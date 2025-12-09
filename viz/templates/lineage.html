@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lineage Explorer - GA Evolution</title>
+
+    <!-- D3.js v7 CDN -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- D3 Sankey Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+
+    <!-- Lineage CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/lineage.css') }}">
+</head>
+<body>
+    <div class="lineage-container">
+        <!-- Header -->
+        <header class="lineage-header">
+            <div class="header-top">
+                <h1>Lineage Explorer</h1>
+                <nav class="page-nav">
+                    <a href="/" class="nav-link">Dashboard</a>
+                    <a href="/lineage" class="nav-link active">Lineage Explorer</a>
+                    <a href="/phylo_attribution" class="nav-link">Phylo Attribution</a>
+                    <a href="/tag_story" class="nav-link">Tag Story</a>
+                </nav>
+            </div>
+            <p class="subtitle">Trace evolutionary paths from high-performers to their ancestral origins</p>
+        </header>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <!-- Era Selector -->
+            <div class="control-group">
+                <label for="era-select">Era:</label>
+                <select id="era-select">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+
+            <!-- Top N Selector -->
+            <div class="control-group">
+                <label for="topn-select">Show Top:</label>
+                <select id="topn-select">
+                    <option value="1">Top 1</option>
+                    <option value="5" selected>Top 5</option>
+                    <option value="10">Top 10</option>
+                </select>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="control-group nav-controls">
+                <button id="back-button" class="control-button" disabled>
+                    ← Back
+                </button>
+                <button id="reset-button" class="control-button">
+                    Reset to Top N
+                </button>
+            </div>
+
+            <!-- Breadcrumb -->
+            <div class="breadcrumb" id="breadcrumb">
+                <span class="breadcrumb-item">Select an era to begin</span>
+            </div>
+
+            <!-- Info Display -->
+            <div class="info-display" id="info-display">
+                <span id="node-count">0 nodes</span> •
+                <span id="flow-count">0 flows</span>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="lineage-legend">
+            <div class="legend-title">Prompt Types:</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #10AC84;"></div>
+                    <span>Initial (Gen 0)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #EE5A6F;"></div>
+                    <span>Mutation</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #F79F1F;"></div>
+                    <span>Crossover</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #9B59B6;"></div>
+                    <span>Immigrant</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Sankey Visualization -->
+        <div class="sankey-container" id="sankey-container">
+            <div class="loading-message" id="loading-message">
+                Select an era and Top N value to view lineage visualization
+            </div>
+        </div>
+    </div>
+
+    <!-- Lineage Sankey JavaScript -->
+    <script src="{{ url_for('static', filename='js/lineage_sankey.js') }}"></script>
+
+    <!-- Main Controller Script -->
+    <script>
+        // Global state
+        let currentEra = null;
+        let currentTopN = 5;
+        let treeDataCache = null;
+        let viewHistory = [];
+        let currentView = null;
+
+        // Load eras on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadEras();
+            setupEventListeners();
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Era selector
+            document.getElementById('era-select').addEventListener('change', (e) => {
+                if (e.target.value) {
+                    currentEra = e.target.value;
+                    loadEraData(currentEra);
+                }
+            });
+
+            // Top N selector
+            document.getElementById('topn-select').addEventListener('change', (e) => {
+                currentTopN = parseInt(e.target.value);
+                if (treeDataCache) {
+                    viewHistory = [];  // Reset history on Top N change
+                    renderTopNView(treeDataCache, currentTopN);
+                }
+            });
+
+            // Back button
+            document.getElementById('back-button').addEventListener('click', () => {
+                if (viewHistory.length > 0) {
+                    const previousView = viewHistory.pop();
+                    currentView = previousView;
+                    renderView(treeDataCache, previousView);
+                    updateNavigationUI();
+                }
+            });
+
+            // Reset button
+            document.getElementById('reset-button').addEventListener('click', () => {
+                viewHistory = [];
+                renderTopNView(treeDataCache, currentTopN);
+            });
+        }
+
+        // Load available eras
+        async function loadEras() {
+            try {
+                const response = await fetch('/api/eras');
+                if (!response.ok) throw new Error('Failed to load eras');
+
+                const eras = await response.json();
+                const select = document.getElementById('era-select');
+                select.innerHTML = '';
+
+                if (eras.length === 0) {
+                    select.innerHTML = '<option value="">No eras found</option>';
+                    return;
+                }
+
+                // Add default prompt
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select an era...';
+                defaultOption.selected = true;
+                select.appendChild(defaultOption);
+
+                // Populate eras
+                eras.forEach(era => {
+                    const option = document.createElement('option');
+                    option.value = era.era;
+                    option.textContent = `${era.era} (${era.max_generation + 1} generations, ${era.total_prompts} prompts)`;
+                    select.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Error loading eras:', error);
+                alert('Failed to load eras: ' + error.message);
+            }
+        }
+
+        // Load era data
+        async function loadEraData(era) {
+            try {
+                document.getElementById('loading-message').textContent = `Loading ${era}...`;
+                document.getElementById('loading-message').style.display = 'flex';
+
+                const response = await fetch(`/api/tree/${era}`);
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to load tree data');
+                }
+
+                treeDataCache = await response.json();
+                viewHistory = [];
+
+                // Render Top N view
+                renderTopNView(treeDataCache, currentTopN);
+
+            } catch (error) {
+                console.error('Error loading era data:', error);
+                document.getElementById('loading-message').textContent = `Error: ${error.message}`;
+                alert('Failed to load era data: ' + error.message);
+            }
+        }
+
+        // Render Top N view
+        function renderTopNView(treeData, topN) {
+            currentView = { type: 'topN', topN: topN };
+            renderView(treeData, currentView);
+            updateNavigationUI();
+        }
+
+        // Render any view
+        function renderView(treeData, view) {
+            // Call main rendering function from lineage_sankey.js
+            renderLineageSankey(treeData, view);
+
+            // Hide loading message
+            document.getElementById('loading-message').style.display = 'none';
+        }
+
+        // Update navigation UI (breadcrumb, buttons)
+        function updateNavigationUI() {
+            const backButton = document.getElementById('back-button');
+            const breadcrumb = document.getElementById('breadcrumb');
+
+            // Update back button
+            backButton.disabled = viewHistory.length === 0;
+
+            // Update breadcrumb
+            if (currentView.type === 'topN') {
+                breadcrumb.innerHTML = `<span class="breadcrumb-item">Top ${currentView.topN} Lineages</span>`;
+            } else if (currentView.type === 'singleNode') {
+                const historyPath = viewHistory.map(v =>
+                    v.type === 'topN' ? `Top ${v.topN}` : `Node ${v.promptId.substring(0, 8)}...`
+                ).concat([`Node ${currentView.promptId.substring(0, 8)}...`]);
+
+                breadcrumb.innerHTML = historyPath.map((item, i) =>
+                    `<span class="breadcrumb-item">${item}</span>`
+                ).join('<span class="breadcrumb-separator">→</span>');
+            }
+        }
+
+        // Handle node click from rendering (called by lineage_sankey.js)
+        function handleNodeClick(promptId) {
+            // Save current view to history
+            viewHistory.push(currentView);
+
+            // Update to new view
+            currentView = { type: 'singleNode', promptId: promptId };
+            renderView(treeDataCache, currentView);
+            updateNavigationUI();
+        }
+    </script>
+</body>
+</html>

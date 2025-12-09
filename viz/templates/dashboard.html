@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GA Evolution Dashboard</title>
+
+    <!-- Plotly.js CDN -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- D3.js v7 CDN (for phylogenetic tree) -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Dashboard CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div>
+                    <h1>Genetic Algorithm Evolution Dashboard</h1>
+                    <p class="subtitle">Prompt Optimization via Evolutionary Computation</p>
+                </div>
+                <nav class="dashboard-nav">
+                    <a href="/" class="nav-link active">Dashboard</a>
+                    <a href="/lineage" class="nav-link">Lineage Explorer</a>
+                    <a href="/phylo_attribution" class="nav-link">Phylo Attribution</a>
+                    <a href="/tag_story" class="nav-link">Tag Story</a>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Era Selector -->
+        <section class="controls">
+            <label for="era-select">Select Era:</label>
+            <select id="era-select">
+                <option value="">Loading...</option>
+            </select>
+            <div id="era-info" class="era-info"></div>
+        </section>
+
+        <!-- Chart 1: Fitness Trajectory -->
+        <section class="chart-section">
+            <h2>Fitness Over Time</h2>
+            <p class="chart-description">
+                Shows fitness evolution across generations. Mean fitness (line) with ±1 std dev (shaded band).
+                Individual prompts colored by operator type. <strong>Flat line = plateau, upward = improvement.</strong>
+            </p>
+            <div id="fitness-chart"></div>
+        </section>
+
+        <!-- Chart 2: Operator Effectiveness -->
+        <section class="chart-section">
+            <h2>Operator Effectiveness</h2>
+            <p class="chart-description">
+                Compares fitness distributions by operator type (mutation, crossover, immigrant).
+                <strong>Which operator produces fittest prompts?</strong>
+            </p>
+            <div id="operators-chart"></div>
+        </section>
+
+        <!-- Chart 3: Tag Diversity -->
+        <section class="chart-section">
+            <h2>Tag Diversity Over Time</h2>
+            <p class="chart-description">
+                Tracks unique tag counts per generation. <strong>Declining lines = convergence.</strong>
+                Shows which tag types maintain diversity vs converge to optimal variants.
+            </p>
+            <div id="diversity-chart"></div>
+        </section>
+    </div>
+
+    <!-- Details Panel (slides in from right on node click) -->
+    <div id="details-panel" class="details-panel">
+        <button class="close-btn" onclick="closeDetailsPanel()">×</button>
+        <div id="details-content"></div>
+    </div>
+
+    <!-- Chart JavaScript Modules -->
+    <script src="{{ url_for('static', filename='js/fitness_chart.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/operators_chart.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/diversity_chart.js') }}"></script>
+
+    <!-- Main Dashboard Controller -->
+    <script>
+        // Global state
+        let currentEra = null;
+
+        // Load eras on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadEras();
+        });
+
+        // Load available eras from API
+        async function loadEras() {
+            try {
+                const response = await fetch('/api/eras');
+                if (!response.ok) throw new Error('Failed to load eras');
+
+                const eras = await response.json();
+                const select = document.getElementById('era-select');
+
+                // Clear loading option
+                select.innerHTML = '';
+
+                if (eras.length === 0) {
+                    select.innerHTML = '<option value="">No eras found</option>';
+                    document.getElementById('era-info').textContent = 'No evolution data found. Run evolution first.';
+                    return;
+                }
+
+                // Add default prompt option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select an era...';
+                defaultOption.selected = true;
+                select.appendChild(defaultOption);
+
+                // Populate select options
+                eras.forEach(era => {
+                    const option = document.createElement('option');
+                    option.value = era.era;
+                    option.textContent = `${era.era} (${era.max_generation + 1} generations, ${era.total_prompts} prompts)`;
+                    select.appendChild(option);
+                });
+
+                // Show prompt message
+                document.getElementById('era-info').textContent = 'Select an era from the dropdown to view evolution data.';
+
+                // Listen for era changes
+                select.addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        loadEraData(e.target.value);
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error loading eras:', error);
+                alert('Failed to load eras: ' + error.message);
+            }
+        }
+
+        // Load all data for selected era
+        async function loadEraData(era) {
+            if (!era) return;
+
+            currentEra = era;
+            document.getElementById('era-info').textContent = `Loading data for ${era}...`;
+
+            try {
+                // Fetch all data in parallel
+                const [genResponse, promptsResponse, diversityResponse] = await Promise.all([
+                    fetch(`/api/generations/${era}`),
+                    fetch(`/api/prompts/${era}`),
+                    fetch(`/api/diversity/${era}`)
+                ]);
+
+                // Check for errors
+                if (!genResponse.ok) {
+                    const error = await genResponse.json();
+                    throw new Error(error.error || 'Failed to load generation data');
+                }
+                if (!promptsResponse.ok) {
+                    const error = await promptsResponse.json();
+                    throw new Error(error.error || 'Failed to load prompts');
+                }
+                if (!diversityResponse.ok) {
+                    const error = await diversityResponse.json();
+                    throw new Error(error.error || 'Failed to load diversity data');
+                }
+
+                // Parse JSON
+                const generations = await genResponse.json();
+                const prompts = await promptsResponse.json();
+                const diversity = await diversityResponse.json();
+
+                // Update info text
+                document.getElementById('era-info').textContent =
+                    `Showing ${generations.length} generations with ${prompts.length} total prompts`;
+
+                // Render charts (defined in separate JS files)
+                renderFitnessChart(generations, prompts);
+                renderOperatorsChart(prompts);
+                renderDiversityChart(diversity);
+
+            } catch (error) {
+                console.error('Error loading era data:', error);
+                document.getElementById('era-info').textContent = `Error: ${error.message}`;
+                alert('Failed to load era data: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

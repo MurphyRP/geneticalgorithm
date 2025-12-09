@@ -1,0 +1,6 @@
+# Visualization dashboard requirements (extends main requirements.txt)
+
+Flask==3.0.0
+
+# Note: All other dependencies (couchbase, openai, anthropic, etc.)
+# are already in /requirements.txt at project root
