@@ -105,22 +105,22 @@ python scripts/run_experiment.py --era quicktest --population 20 --generations 5
 
 ### Phase 1: Prepare Your Corpus (One-time Setup)
 
-Before evolution can begin, populate the `unstructured` collection with text chunks from your domain:
+Before evolution can begin, populate the `unstructured` collection with text chunks:
 
 ```bash
-# Process a PDF file
-python scripts/populate_corpus.py --domain academic --file /path/to/paper.pdf
+# Process a single file
+python scripts/populate_corpus.py --domain mixed --file /path/to/document.pdf
 
 # Process a directory (all PDF/HTML/MD files)
-python scripts/populate_corpus.py --domain legal --dir /path/to/contracts/
+python scripts/populate_corpus.py --domain mixed --dir /path/to/documents/
 
 # Custom chunk size (default is 600 words)
-python scripts/populate_corpus.py --domain technical --dir docs/ --target-words 500
+python scripts/populate_corpus.py --domain mixed --dir /path/to/documents/ --target-words 500
 ```
 
-**Supported domains:** `academic`, `medical`, `conversational`, `technical`, `narrative`, `legal`, `mixed`
-
 **Supported file types:** PDF, HTML, Markdown
+
+**Chunk size:** Default 600 words works well for most text types. Adjust `--target-words` based on your needs.
 
 The corpus preparation is a one-time process. You can run multiple experiments against the same corpus.
 
